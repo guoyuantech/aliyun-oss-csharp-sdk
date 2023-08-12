@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Aliyun.OSS.Util;
@@ -247,9 +248,29 @@ namespace Aliyun.OSS.Common.Communication
             ServiceClientImpl.HttpAsyncResult result = new ServiceClientImpl.HttpAsyncResult(callback, state);
             task.ContinueWith((resp) =>
             {
-                ServiceResponse serviceResponse = new ResponseImpl(resp.Result);
-                result.Complete(serviceResponse);
-            });
+                if (resp.IsFaulted)
+                {
+                    result.Complete(resp.Exception);
+                }
+                else
+                {
+                    try
+                    {
+                        ServiceResponse serviceResponse = new ResponseImpl(resp.Result);
+                        // Align with ServiceClientImpl
+                        HandleResponse(serviceResponse, context?.ResponseHandlers);
+                        result.Complete(serviceResponse);
+                    }
+                    catch (Exception e)
+                    {
+                        // Task.Result will throw exception Task.IsCancelled is true
+                        result.Complete(e);
+                    }
+                }
+            },
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously | TaskContinuationOptions.DenyChildAttach,
+            TaskScheduler.Default);
 
             return result;
         }
@@ -344,7 +365,17 @@ namespace Aliyun.OSS.Common.Communication
         private HttpClient Create(bool setProxy)
         {
             HttpClientHandler httpClientHandler = new HttpClientHandler();
-            HttpClient client = new HttpClient(httpClientHandler);
+            HttpClient client = null;
+            if (Configuration.AddHttpClientHandler != null)
+            {
+                var handler = Configuration.AddHttpClientHandler(httpClientHandler);
+                client = new HttpClient(handler);
+            }
+            else
+            {
+                client = new HttpClient(httpClientHandler);
+            }
+            
             if (setProxy)
             {
                 this.SetProxy(httpClientHandler);

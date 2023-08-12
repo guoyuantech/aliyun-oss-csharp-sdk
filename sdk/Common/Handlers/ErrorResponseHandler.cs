@@ -57,7 +57,7 @@ namespace Aliyun.OSS.Common.Handlers
                 // Re-throw the web exception if the response cannot be parsed.
                 response.EnsureSuccessful();
             }
-            catch (InvalidOperationException)
+            catch (InvalidOperationException e)
             {
                 // Re-throw the web exception if the response cannot be parsed.
                 response.EnsureSuccessful();

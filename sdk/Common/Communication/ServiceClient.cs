@@ -111,6 +111,10 @@ namespace Aliyun.OSS.Common.Communication
         
         protected static void HandleResponse(ServiceResponse response, IEnumerable<IResponseHandler> handlers)
         {
+            if (handlers == null)
+            {
+                return;
+            }
             foreach (var handler in handlers)
                 handler.Handle(response);
         }

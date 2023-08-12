@@ -6,6 +6,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Net.Http;
 using Aliyun.OSS;
 using Aliyun.OSS.Util;
 
@@ -35,9 +36,21 @@ namespace Aliyun.OSS.Common
         private bool _enableCrcCheck = true;
         private static int _connectionLimit = 512;
 
+        
 #if NETCOREAPP2_0
         private bool _enableNewServiceClient = true;
 #endif
+        /// <summary>
+        ///  Add a new client handler when creating a new http client
+        /// </summary>
+        /// <param name="currentHandler">Current client handler</param>
+        /// <returns>New client handler</returns>
+        public delegate HttpMessageHandler ServiceHttpClientHandler(HttpClientHandler currentHandler);
+
+        /// <summary>
+        /// Add new http client hander
+        /// </summary>
+        public ServiceHttpClientHandler AddHttpClientHandler { get; set; }
 
         /// <summary>
         /// Max Http connection connection count. By default it's 512.
