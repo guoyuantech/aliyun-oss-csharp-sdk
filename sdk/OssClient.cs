@@ -1381,6 +1381,19 @@ namespace Aliyun.OSS
             return cmd.Execute();
         }
 
+        public IAsyncResult BeginGetSimplifiedObjectMetadata(GetObjectMetadataRequest request, AsyncCallback callback, Object state)
+        {
+            var cmd = GetObjectMetadataCommand.Create(_serviceClient, _endpoint,
+                                                     CreateContext(HttpMethod.Head, request.BucketName, request.Key),
+                                                     request, true);
+            return OssUtils.BeginOperationHelper(cmd, callback, state);
+        }
+
+        public ObjectMetadata EndGetSimplifiedObjectMetadata(IAsyncResult asyncResult)
+        {
+            return OssUtils.EndOperationHelper<ObjectMetadata>(_serviceClient, asyncResult);
+        }
+
 
         /// <inheritdoc/>
         public ObjectMetadata ResumableDownloadObject(DownloadObjectRequest request)
@@ -1473,6 +1486,20 @@ namespace Aliyun.OSS
                                                 CreateContext(HttpMethod.Delete, deleteObjectRequest.BucketName, deleteObjectRequest.Key),
                                                 deleteObjectRequest);
             return cmd.Execute();
+        }
+
+        /// <inheritdoc/>
+        public IAsyncResult BeginDeleteObject(DeleteObjectRequest deleteObjectRequest, AsyncCallback callback, Object state)
+        {
+            var cmd = DeleteObjectCommand.Create(_serviceClient, _endpoint,
+                                                CreateContext(HttpMethod.Delete, deleteObjectRequest.BucketName, deleteObjectRequest.Key),
+                                                deleteObjectRequest);
+            return OssUtils.BeginOperationHelper(cmd, callback, state);
+        }
+
+        public DeleteObjectResult EndDeleteObject(IAsyncResult asyncResult)
+        {
+            return OssUtils.EndOperationHelper<DeleteObjectResult>(_serviceClient, asyncResult);
         }
 
         /// <inheritdoc/>
@@ -1618,6 +1645,57 @@ namespace Aliyun.OSS
                 {
                     // Do nothing
                 }
+            }
+            catch (OssException e)
+            {
+                if (e.ErrorCode == OssErrorCode.NoSuchBucket ||
+                    e.ErrorCode == OssErrorCode.NoSuchKey)
+                {
+                    return false;
+                }
+
+                // Rethrow
+                throw;
+            }
+            catch (WebException ex)
+            {
+                HttpWebResponse errorResponse = ex.Response as HttpWebResponse;
+                if (errorResponse.StatusCode == HttpStatusCode.NotFound)
+                {
+                    return false;
+                }
+
+                // Rethrow
+                throw;
+            }
+#if NETCOREAPP2_0
+            catch (System.Net.Http.HttpRequestException ex2)
+            {
+                if (ex2.Message.Contains("404"))
+                {
+                    return false;
+                }
+
+                throw;
+            }
+#endif
+            return true;
+        }
+
+        public IAsyncResult BeginDoesObjectExist(string bucketName, string key, AsyncCallback callback, Object state)
+        {
+            var cmd = HeadObjectCommand.Create(_serviceClient, _endpoint,
+                                                  CreateContext(HttpMethod.Head, bucketName, key),
+                                                  bucketName, key);
+
+            return OssUtils.BeginOperationHelper(cmd, callback, state);
+        }
+
+        public bool EndDoesObjectExist(IAsyncResult asyncResult)
+        {
+            try
+            {
+                OssUtils.EndOperationHelper(_serviceClient, asyncResult);
             }
             catch (OssException e)
             {

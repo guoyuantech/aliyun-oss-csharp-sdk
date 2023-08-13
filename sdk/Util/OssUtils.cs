@@ -404,7 +404,7 @@ namespace Aliyun.OSS.Util
             }
         }
 
-        private static ServiceResponse EndOperationHelper(IServiceClient serviceClient, IAsyncResult asyncResult)
+        internal static ServiceResponse EndOperationHelper(IServiceClient serviceClient, IAsyncResult asyncResult)
         {
             if (asyncResult == null)
                 throw new ArgumentNullException("asyncResult");
